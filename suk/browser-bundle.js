@@ -112,7 +112,7 @@ function createPlatform() {
           var cancel=typeof AbortController==='function'?new AbortController():null;
           if(cancel){clearTimeout(timer);timer=setTimeout(function(){cancel.abort();offline();},6500);}
           fetch(options.url,{method:method,headers:headers,body:options.data===undefined?undefined:JSON.stringify(options.data),
-            credentials:'same-origin',redirect:'error',signal:cancel&&cancel.signal}).then(function(res){
+            credentials:options.credentials||'same-origin',redirect:'error',signal:cancel&&cancel.signal}).then(function(res){
             return res.text().then(function(data){done(res.status,data);});
           }).catch(failed);
         }else failed();
@@ -135,6 +135,11 @@ function createPlatform() {
   }
   function chooseLogin(target){
     if(isMini)return;
+    if(apiMeta&&apiMeta.content==='https://sumind.vip'&&window.location.origin!=='https://sumind.vip'){
+      var rank=/^game-rank-(week|month|all)$/.exec(target);
+      window.location.assign('https://sumind.vip/account/login?next=suk&view='+(rank?'rank-'+rank[1]:'account'));
+      return;
+    }
     try{window.sessionStorage.setItem('sumind:auth-return',JSON.stringify({target:target,expiresAt:Date.now()+30*60*1000}));}catch(e){}
     window.location.assign('/account/login');
   }
@@ -267,7 +272,8 @@ function createAuth(platform, options) {
       if(platform.name==='web')headers['X-SuMind-Game-Token']=token;
       else headers.Authorization='Bearer '+token;
     }
-    return platform.request({url:endpoint+path,method:method,data:data,headers:headers});
+    return platform.request({url:endpoint+path,method:method,data:data,headers:headers,
+      credentials:platform.name==='web'&&path==='/auth/login'&&endpoint==='https://sumind.vip/api/game'?'include':'same-origin'});
   }
   function remember(value) {
     state.token=value.token;state.playerId=value.playerId;state.identityId=value.identityId;
